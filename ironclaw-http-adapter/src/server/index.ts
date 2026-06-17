@@ -2,10 +2,6 @@
  * Server adapter factory
  */
 
-/**
- * Server adapter factory
- */
-
 import type { ServerAdapterModule } from "@paperclipai/adapter-utils";
 import { execute } from "./execute.js";
 import { testEnvironment } from "./test.js";
@@ -22,12 +18,8 @@ export function createServerAdapter(): ServerAdapterModule {
     testEnvironment,
     models,
     agentConfigurationDoc,
+    getConfigSchema, // Always include getConfigSchema
   };
-
-  // Add getConfigSchema if supported by the installed adapter-utils version
-  if (typeof getConfigSchema === "function") {
-    adapter.getConfigSchema = getConfigSchema;
-  }
 
   return adapter;
 }
