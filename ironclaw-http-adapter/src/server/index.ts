@@ -5,7 +5,7 @@
 import type { ServerAdapterModule } from "@paperclipai/adapter-utils";
 import { execute } from "./execute.js";
 import { testEnvironment } from "./test.js";
-import { type, label, agentConfigurationDoc } from "../index.js";
+import { type, label, agentConfigurationDoc, configSchema } from "../index.js";
 
 // Dynamic models list - updated by execute() on first run
 let models: Array<{ id: string; label: string }> = [];
@@ -19,6 +19,9 @@ export function createServerAdapter(): ServerAdapterModule {
     agentConfigurationDoc,
   };
 }
+
+// Export configSchema separately for Paperclip UI
+export { configSchema };
 
 // Export for testing
 export { execute } from "./execute.js";
