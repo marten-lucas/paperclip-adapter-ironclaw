@@ -175,33 +175,92 @@ EventFrame:    {type: "event", event: string, payload?, seq?}
 
 ## Phase 4: Core Development
 
+### Architecture Decision: HTTP Responses API (Not Gateway Protocol)
+
+**Critical Finding from Phase 2**: 
+Ironclaw and OpenClaw have fundamentally different architectures. Cannot adapt the gateway protocol. Instead, build an HTTP-based adapter using Ironclaw's Responses API.
+
+**Key Differences**:
+- **OpenClaw**: Request-response gateway protocol
+- **Ironclaw**: Thread-based conversation API with persistent context
+- **Session Model**: Ironclaw uses `response_id` (thread UUID) instead of `sessionKey`
+- **API**: `POST /api/v1/responses` for agent requests
+- **Continuity**: Via `previous_response_id` for multi-turn conversations
+
 ### 4.1 Adapter Base Implementation
 **Tasks**:
-- [ ] Rename adapter type from openclaw_gateway → ironclaw_gateway
-- [ ] Update configuration documentation
-- [ ] Adapt gateway client for Ironclaw protocol
-- [ ] Implement Ironclaw connect handshake
-- [ ] Implement Ironclaw agent request method
+- [ ] Create new adapter type: `ironclaw_responses` (or `ironclaw_gateway`)
+- [ ] Update configuration documentation (for HTTP Responses API)
+- [ ] Remove WebSocket gateway code (not applicable)
+- [ ] Implement HTTP client for Responses API
+- [ ] Add authentication handling (Bearer token)
+- [ ] Implement request/response mapping (OpenClaw → Ironclaw payload format)
+
+**File Changes**:
+- `src/index.ts` - Update adapter metadata
+- `src/server/execute.ts` - Replace gateway client with HTTP client
+- `src/server/types.ts` (new) - Request/response types for Responses API
+- Remove: `src/server/execute.test.ts` gatway tests (will create new tests)
 
 ### 4.2 Dynamic Discovery Implementation
 **Tasks**:
-- [ ] Implement model list discovery on adapter init
-- [ ] Cache model list with refresh strategy
-- [ ] Export discovered models in adapter config
-- [ ] Implement tools/capabilities discovery
-- [ ] Export tools in adapter config
+- [ ] Implement model list discovery via `POST /api/webchat/v2/llm/list-models`
+- [ ] Cache model list with TTL (e.g., 1 hour)
+- [ ] Export discovered models in `models` array
+- [ ] Implement built-in tools list (hardcoded for MVP)
+- [ ] Document how to extend tool discovery in future
 
-### 4.3 Session Management
-**Tasks**:
-- [ ] Verify Ironclaw session key routing
-- [ ] Adapt session key prefixing if needed
-- [ ] Test multi-agent isolation
+**Built-in Tools to Include**:
+- File operations: `file_read`, `file_write`, `file_append`
+- Shell: `shell_execute`
+- Web: `web_fetch`
+- Memory: `memory_save`, `memory_search`, `memory_recall`
+- JSON: `json_parse`, `json_transform`
+- Time: `get_time`
+- Job management: `job_create`, `job_cancel`, `job_status`
 
-### 4.4 Error Handling & Logging
+### 4.3 Session Management (Thread-Based)
 **Tasks**:
-- [ ] Adapt error codes from Ironclaw gateway
-- [ ] Create Ironclaw-specific log prefixes
-- [ ] Handle timeout scenarios
+- [ ] Implement thread creation on first request
+- [ ] Store `response_id` as session identifier
+- [ ] Implement session continuation via `previous_response_id`
+- [ ] Handle multi-turn conversations
+- [ ] Test context preservation across turns
+
+**Key Difference from OpenClaw**:
+- No more `sessionKeyStrategy` (issue/fixed/run)
+- No agent ID prefixing (Ironclaw doesn't route to agents)
+- Each Paperclip agent creates its own Ironclaw thread
+
+### 4.4 Tool Call Round-Trip Implementation
+**Tasks**:
+- [ ] Handle `function_call` responses from Ironclaw
+- [ ] Implement tool result injection
+- [ ] Send follow-up request with `function_call_output`
+- [ ] Resume conversation with context intact
+- [ ] Handle tool execution errors
+
+**Flow**:
+1. Initial request → Ironclaw returns `function_call`
+2. Extract tool name and parameters
+3. Client executes tool (or routes to Paperclip)
+4. Send new request with `function_call_output` + `previous_response_id`
+5. Continue until no more tool calls
+
+### 4.5 Error Handling & Logging
+**Tasks**:
+- [ ] Handle HTTP errors (401, 404, 500, timeout)
+- [ ] Map Ironclaw error codes to Paperclip errors
+- [ ] Create adapter-specific log prefixes
+- [ ] Handle approval gate responses
+- [ ] Log token usage for cost tracking
+
+**Error Types to Handle**:
+- Authentication errors (invalid token)
+- Thread not found (session expired?)
+- Tool execution failures
+- Timeout scenarios
+- Network errors
 
 ---
 
@@ -276,49 +335,84 @@ EventFrame:    {type: "event", event: string, payload?, seq?}
 
 ## Limitations & Known Issues
 
-### Unable to Migrate
-- **[To be determined]**: List will be populated after Phase 2 analysis
+### Unable to Migrate from OpenClaw Gateway
+The following OpenClaw features **cannot be migrated to Ironclaw** due to architectural differences:
 
-### Workarounds Required
-- **[To be determined]**: Mitigation strategies for unsupported features
+1. **WebSocket Gateway Protocol** 
+   - OpenClaw: Stateless WebSocket gateway with challenge-based auth
+   - Ironclaw: Thread-based HTTP Responses API
+   - **Workaround**: Use HTTP Responses API instead
+
+2. **Device Authentication (Ed25519 Signing)**
+   - OpenClaw: Supports device pairing and ephemeral keypairs
+   - Ironclaw: Token-based auth only
+   - **Workaround**: Use API tokens; no device auth available
+
+3. **Session Key Strategies (issue/fixed/run)**
+   - OpenClaw: Three routing modes for session management
+   - Ironclaw: Implicit thread-per-conversation model
+   - **Workaround**: Each Paperclip agent creates own Ironclaw thread
+
+4. **Multi-Agent Shared Sessions**
+   - OpenClaw: One session can route to multiple agents via `agentId`
+   - Ironclaw: No agent routing in Responses API
+   - **Workaround**: Each agent gets independent thread (acceptable for use case)
+
+5. **Auto-Pairing Flow (device.pair.list/device.pair.approve)**
+   - OpenClaw: Automatic device registration on first connect
+   - Ironclaw: Not applicable (no device auth)
+   - **Workaround**: Pre-create API tokens; provide to adapter config
+
+### Workarounds Implemented
+
+1. **HTTP Instead of WebSocket**: Simpler, cleaner, uses public API
+2. **Token-Based Auth Only**: Documented in config, no pairing workflow
+3. **Thread-Per-Agent Model**: Each Paperclip agent gets own Ironclaw conversation thread
+4. **Hardcoded Built-in Tools**: For MVP, expose standard tool set; extensibility TBD
 
 ### Future Enhancements
-- [ ] Support for Ironclaw webhooks instead of polling
-- [ ] Caching layer for model/tools discovery
-- [ ] Metrics/observability integration
+
+1. **WebSocket Support**: If real-time streaming needed
+2. **Tool Discovery API**: Query Ironclaw for available extensions (beyond built-in)
+3. **Approval Gate Handling**: Better UX for tools requiring approval
+4. **Thread Management UI**: Allow users to manage/inspect Ironclaw threads
+5. **Provider-Aware Model Selection**: Extract LLM provider from model name or API
 
 ---
 
-## Assumptions & Unknowns
+## Assumptions & Unknowns (Updated)
 
-### Assumptions
-1. Ironclaw supports WebSocket gateway protocol (similar to OpenClaw)
-2. Ironclaw has agents endpoint for routing requests
-3. Ironclaw can provide model list dynamically
-4. Ironclaw can provide tools/capabilities list
+### Confirmed Assumptions ✅
+1. ✅ Ironclaw supports HTTP Responses API (`/api/v1/responses`)
+2. ✅ Dynamic model discovery via `POST /api/webchat/v2/llm/list-models`
+3. ✅ Built-in tools available through agentic loop
+4. ✅ 3-tier token authentication supported
+5. ✅ Session continuity via `previous_response_id`
+6. ✅ WebSocket gateway available (can be used for advanced features later)
 
-### Unknowns (To be clarified)
-1. **Exact Ironclaw gateway protocol spec** - awaiting documentation review
-2. **Model discovery API** - need to check Ironclaw docs
-3. **Tools/capabilities API** - need to check Ironclaw docs
-4. **Authentication mechanism** - does Ironclaw use same token/device auth?
-5. **Session isolation strategy** - how does Ironclaw handle agent context?
-6. **Test system access** - when available for Phase 5 testing?
+### Remaining Questions ❓
+1. **Tool Approval Gates**: How should adapter handle `requires_approval` responses?
+2. **Provider Extraction**: Can we reliably extract LLM provider from model string?
+3. **Thread Lifecycle**: Should adapter manage thread cleanup, or let Ironclaw handle?
+4. **Custom Tools/Extensions**: How do users add custom tools to Ironclaw for use via Paperclip?
+5. **Real-Time Requirements**: Is HTTP polling sufficient, or do we need streaming?
 
 ---
 
 ## Timeline & Deliverables
 
-| Phase | Duration | Key Deliverables |
-|-------|----------|-----------------|
-| Phase 1 | 1-2 days | Docs organized, protocol analysis complete |
-| Phase 2 | 2-3 days | API mapping complete, protocol decisions made |
-| Phase 3 | 1-2 days | Detailed implementation plan, limitations documented |
-| Phase 4 | 5-7 days | Adapter implementation complete, unit tests pass |
-| Phase 5 | 3-5 days | Integration tests pass, system testing setup ready |
-| Phase 6 | 2-3 days | Performance validated, security reviewed |
+| Phase | Duration | Status | Key Deliverables |
+|-------|----------|--------|-----------------|
+| Phase 1 | 1 day | ✅ Complete | Paperclip docs, initial analysis |
+| Phase 2 | 1 day | ✅ Complete | Ironclaw analysis, API mapping, architecture decision |
+| Phase 3 | 1 day | ⏳ Next | Detailed implementation spec |
+| Phase 4 | 5-7 days | Not started | HTTP Responses API adapter complete |
+| Phase 5 | 3-5 days | Not started | Integration & system tests |
+| Phase 6 | 2-3 days | Not started | Performance, security review |
 
-**Total Estimated Duration**: 2-3 weeks (pending clarifications and test system availability)
+**Total Estimated Duration**: 2-3 weeks (accelerated due to clear architecture path)
+
+**Key Milestone**: Phase 3 completion provides exact implementation tasks and timeline adjustments
 
 ---
 
