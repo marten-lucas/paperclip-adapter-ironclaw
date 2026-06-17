@@ -11,66 +11,6 @@ export const label = "Ironclaw (HTTP)";
 // Dynamic models array - populated at runtime via model discovery
 export const models: Array<{ id: string; label: string }> = [];
 
-// Configuration schema for Paperclip UI form rendering
-export const configSchema = {
-  type: "object",
-  required: ["url", "authToken"],
-  properties: {
-    url: {
-      type: "string",
-      title: "Ironclaw URL",
-      description: "HTTP URL of your Ironclaw instance (e.g., http://10.12.12.201:8080 or https://ironclaw.example.com)",
-      pattern: "^https?://.*",
-      errorMessage: "Must be a valid HTTP(S) URL"
-    },
-    authToken: {
-      type: "string",
-      title: "API Token",
-      description: "Bearer token for Ironclaw API authentication",
-      secret: true
-    },
-    model: {
-      type: "string",
-      title: "Default Model",
-      description: "LLM model to use (optional, uses Ironclaw default if not specified)"
-    },
-    timeout: {
-      type: "number",
-      title: "Timeout (seconds)",
-      description: "Request timeout in seconds (default: 120)",
-      minimum: 1,
-      maximum: 3600,
-      default: 120
-    },
-    stream: {
-      type: "boolean",
-      title: "Enable Streaming",
-      description: "Stream responses via polling (requires pollInterval)",
-      default: false
-    },
-    pollInterval: {
-      type: "number",
-      title: "Poll Interval (ms)",
-      description: "Polling interval in milliseconds when streaming (default: 1000)",
-      minimum: 100,
-      maximum: 10000,
-      default: 1000
-    },
-    tools: {
-      type: "array",
-      title: "Enabled Tools",
-      description: "List of tools to enable (file_read, file_write, shell_execute, web_fetch, etc.)",
-      items: { type: "string" }
-    },
-    instructions: {
-      type: "string",
-      title: "System Instructions",
-      description: "System prompt template (supports {{agentId}}, {{runId}}, {{timestamp}})",
-      multiline: true
-    }
-  }
-};
-
 export const agentConfigurationDoc = `# ironclaw_http agent configuration
 
 Use when:
