@@ -33,8 +33,8 @@ test.beforeEach(async ({ context, baseURL }, testInfo) => {
   ]);
 });
 
-test("ironclaw adapter schema endpoint returns required fields", async ({ request, baseURL }) => {
-  const response = await request.get(`${baseURL}/api/adapters/ironclaw_http/config-schema`);
+test("ironclaw adapter schema endpoint returns required fields", async ({ page, baseURL }) => {
+  const response = await page.request.get(`${baseURL}/api/adapters/ironclaw_http/config-schema`);
   expect(response.ok(), await response.text()).toBeTruthy();
 
   const body = (await response.json()) as {
@@ -52,9 +52,12 @@ test("agent configuration page shows ironclaw config fields", async ({ page }) =
 
   await page.goto(path, { waitUntil: "domcontentloaded" });
 
+  // Guard against silent auth redirects.
+  await expect(page).toHaveURL(/\/AHOA\/agents\/.*\/configuration/);
+
   // Open adapter type selector and pick Ironclaw.
-  await page.getByLabel(/Adapter type/i).click();
-  await page.locator("button").filter({ hasText: /Ironclaw Http/i }).first().click();
+  await page.locator("button").filter({ hasText: /(OpenCode|Ironclaw)/i }).first().click();
+  await page.getByText(/Ironclaw Http/i).first().click();
 
   await expect(page.getByText("Ironclaw URL", { exact: false })).toBeVisible();
   await expect(page.getByText("API Token", { exact: false })).toBeVisible();
