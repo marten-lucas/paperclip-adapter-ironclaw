@@ -91,30 +91,60 @@ export async function listModels(input: {
   timeoutMs?: number;
 }): Promise<string[]> {
   const { url, authToken, timeoutMs = 30000 } = input;
-  const modelEndpoints = [
+  const modelEndpoints: Array<{
+    path: string;
+    method: "GET" | "POST";
+    body?: Record<string, unknown>;
+  }> = [
     {
       path: "/api/llm/list_models",
+      method: "POST",
       body: {
         adapter: "openai-compatible",
       },
     },
     {
       path: "/api/webchat/v2/llm/list-models",
+      method: "POST",
       body: {},
+    },
+    {
+      path: "/api/gateway/status",
+      method: "GET",
     },
   ];
 
   function normalizeModelList(payload: ListModelsResponse): string[] {
-    const raw = payload.models;
-    if (Array.isArray(raw)) {
-      return raw.filter((entry): entry is string => typeof entry === "string" && entry.trim().length > 0);
+    const candidates: unknown[] = [
+      payload.models,
+      payload.data?.models,
+      payload.model,
+      payload.llm_model,
+      payload.data?.model,
+      payload.data?.llm_model,
+    ];
+
+    const collected: string[] = [];
+
+    for (const raw of candidates) {
+      if (Array.isArray(raw)) {
+        collected.push(
+          ...raw.filter((entry): entry is string => typeof entry === "string" && entry.trim().length > 0),
+        );
+        continue;
+      }
+
+      if (typeof raw === "string" && raw.trim().length > 0) {
+        collected.push(raw.trim());
+        continue;
+      }
+
+      if (raw && typeof raw === "object") {
+        collected.push(...Object.keys(raw).filter((entry) => entry.trim().length > 0));
+      }
     }
 
-    if (raw && typeof raw === "object") {
-      return Object.keys(raw).filter((entry) => entry.trim().length > 0);
-    }
-
-    return [];
+    return Array.from(new Set(collected));
   }
 
   try {
@@ -123,12 +153,12 @@ export async function listModels(input: {
 
     for (const endpoint of modelEndpoints) {
       const response = await fetch(`${url}${endpoint.path}`, {
-        method: "POST",
+        method: endpoint.method,
         headers: {
           "Authorization": `Bearer ${authToken}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(endpoint.body),
+        body: endpoint.method === "POST" ? JSON.stringify(endpoint.body ?? {}) : undefined,
         signal: controller.signal,
       });
 

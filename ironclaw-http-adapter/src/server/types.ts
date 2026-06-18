@@ -72,4 +72,11 @@ export interface RequestPayload {
 
 export interface ListModelsResponse {
   models?: string[] | Record<string, unknown>;
+  model?: string;
+  llm_model?: string;
+  data?: {
+    models?: string[] | Record<string, unknown>;
+    model?: string;
+    llm_model?: string;
+  };
 }
