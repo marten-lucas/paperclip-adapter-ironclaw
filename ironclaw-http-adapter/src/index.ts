@@ -1,3 +1,5 @@
+import { getConfigSchema } from "./server/config-schema";
+
 /**
  * Ironclaw HTTP Adapter for Paperclip
  * 
@@ -7,6 +9,8 @@
 
 export const type = "ironclaw_http";
 export const label = "Ironclaw (HTTP)";
+
+export const config = getConfigSchema();
 
 // Dynamic models array - populated at runtime via model discovery
 export const models: Array<{ id: string; label: string }> = [];
