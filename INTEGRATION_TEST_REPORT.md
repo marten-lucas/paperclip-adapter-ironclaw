@@ -33,6 +33,14 @@ Purpose: Filter thinking-related requests
 Status: Traefik routing active on port 11434
 ```
 
+### Ironclaw Compatibility Shim (CT300)
+```
+URL: http://10.12.12.106:13000
+Upstream: CT201:3000 (10.12.12.102:3000)
+Purpose: Map legacy model-discovery endpoint to current Ironclaw API
+Status: Separate FastAPI shim + separate Traefik entrypoint active on port 13000
+```
+
 ### Test Coverage
 - ✅ Request validation (missing URL, missing token)
 - ✅ Successful request execution

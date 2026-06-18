@@ -1,0 +1,15 @@
+[Unit]
+Description=Ironclaw endpoint compatibility shim
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/opt/ironclaw-endpoint-shim/venv/bin/uvicorn app:app --host 127.0.0.1 --port 18081 --app-dir /opt/ironclaw-endpoint-shim
+Restart=always
+RestartSec=2
+User=root
+Group=root
+
+[Install]
+WantedBy=multi-user.target

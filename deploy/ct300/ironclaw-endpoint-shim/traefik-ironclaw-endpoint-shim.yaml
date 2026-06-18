@@ -1,0 +1,13 @@
+http:
+  routers:
+    ironclaw-endpoint-shim-router:
+      entryPoints:
+        - ironclawcompat
+      rule: "PathPrefix(`/`)"
+      service: ironclaw-endpoint-shim-svc
+
+  services:
+    ironclaw-endpoint-shim-svc:
+      loadBalancer:
+        servers:
+          - url: "http://127.0.0.1:18081"
