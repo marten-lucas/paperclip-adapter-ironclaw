@@ -90,7 +90,58 @@ npm run typecheck
 
 # Test
 npm test
+
+# Install Playwright browser deps
+npm run e2e:install
+
+# Run browser e2e checks (requires env vars)
+npm run test:e2e
 ```
+
+## Playwright On CT202
+
+The e2e suite is in `e2e/ironclaw-schema-ui.spec.ts` and validates:
+- The authenticated schema endpoint for `ironclaw_http`
+- Visibility of `Ironclaw URL` and `API Token` on the agent configuration page
+
+Required env vars:
+- `PAPERCLIP_BASE_URL` (example: `http://127.0.0.1:3100` inside ct202)
+- `PAPERCLIP_SESSION_TOKEN` (authenticated Paperclip session cookie value)
+- `PAPERCLIP_AGENT_CONFIG_PATH` (optional, defaults to `/AHOA/agents/ceo/configuration`)
+
+Example (inside ct202):
+
+```bash
+cd /opt/ironclaw-adapter/ironclaw-http-adapter
+npm ci
+npm run e2e:install
+PAPERCLIP_BASE_URL=http://127.0.0.1:3100 \
+PAPERCLIP_SESSION_TOKEN='REDACTED' \
+npm run test:e2e
+```
+
+### Where To Store Credentials
+
+Do not commit credentials to git. Use one of these patterns:
+
+1. Root-only env file on ct202:
+```bash
+install -d -m 700 /opt/ironclaw-adapter/.secrets
+cat >/opt/ironclaw-adapter/.secrets/paperclip-e2e.env <<'EOF'
+PAPERCLIP_BASE_URL=http://127.0.0.1:3100
+PAPERCLIP_SESSION_TOKEN=REDACTED
+PAPERCLIP_AGENT_CONFIG_PATH=/AHOA/agents/ceo/configuration
+EOF
+chmod 600 /opt/ironclaw-adapter/.secrets/paperclip-e2e.env
+set -a; source /opt/ironclaw-adapter/.secrets/paperclip-e2e.env; set +a
+npm run test:e2e
+```
+
+2. Systemd runtime environment (for scheduled jobs):
+- Add env vars in a root-owned systemd drop-in for the e2e runner service
+- Keep file permissions `600`
+
+The session token should be a low-privilege user session dedicated to testing.
 
 ## License
 
