@@ -5,6 +5,7 @@
 import type { AdapterEnvironmentTestContext, AdapterEnvironmentTestResult } from "@paperclipai/adapter-utils";
 import { asString } from "@paperclipai/adapter-utils/server-utils";
 import { listModels } from "./client.js";
+import { refreshAdapterModels } from "./models-cache.js";
 
 export async function testEnvironment(context: AdapterEnvironmentTestContext): Promise<AdapterEnvironmentTestResult> {
   const checks: Array<{
@@ -63,6 +64,7 @@ export async function testEnvironment(context: AdapterEnvironmentTestContext): P
         authToken,
         timeoutMs: 10000,
       });
+      refreshAdapterModels(models);
 
       if (models.length > 0) {
         checks.push({

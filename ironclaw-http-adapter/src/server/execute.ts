@@ -5,6 +5,7 @@
 import type { AdapterExecutionContext, AdapterExecutionResult } from "@paperclipai/adapter-utils";
 import { asString, asNumber } from "@paperclipai/adapter-utils/server-utils";
 import { executeRequest, listModels } from "./client.js";
+import { refreshAdapterModels } from "./models-cache.js";
 
 // Model discovery cache (1 hour TTL)
 const modelCache = {
@@ -45,6 +46,7 @@ export async function execute(context: AdapterExecutionContext): Promise<Adapter
           id: m,
           label: m,
         }));
+        refreshAdapterModels(discoveredModels);
         modelCache.expireAt = Date.now() + 60 * 60 * 1000; // 1 hour TTL
 
         await context.onLog(

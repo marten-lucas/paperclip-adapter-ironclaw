@@ -7,18 +7,18 @@ import { execute } from "./execute.js";
 import { testEnvironment } from "./test.js";
 import { getConfigSchema } from "./config-schema.js";
 import { type, label, agentConfigurationDoc } from "../index.js";
-
-// Dynamic models list - updated by execute() on first run
-let models: Array<{ id: string; label: string }> = [];
+import { adapterModels } from "./models-cache.js";
 
 export function createServerAdapter(): ServerAdapterModule {
   const adapter: any = {
     type,
+    label,
     execute,
     testEnvironment,
-    models,
+    models: adapterModels,
+    config: getConfigSchema(),
     agentConfigurationDoc,
-    getConfigSchema, // Always include getConfigSchema
+    getConfigSchema,
   };
 
   return adapter;
