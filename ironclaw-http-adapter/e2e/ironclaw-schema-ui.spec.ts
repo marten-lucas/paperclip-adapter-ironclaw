@@ -1,4 +1,4 @@
-import { expect, test, type APIResponse, type TestInfo } from "@playwright/test";
+import { expect, test, type APIResponse } from "@playwright/test";
 
 function requireEnv(name: string): string | null {
   const value = process.env[name];
@@ -13,7 +13,6 @@ function asSecretRef(secretId: string): string {
 
 async function readJsonOrSkip(
   response: APIResponse,
-  testInfo: TestInfo,
   contextMessage: string,
 ): Promise<any> {
   const status = response.status();
@@ -23,7 +22,7 @@ async function readJsonOrSkip(
   const bodyText = await response.text();
 
   if (status >= 300 && status < 400 && /\/yunohost\/sso/i.test(location)) {
-    testInfo.skip(true, `${contextMessage}: redirected to SSO. Refresh PAPERCLIP_SESSION_TOKEN.`);
+    throw new Error(`${contextMessage}: redirected to SSO at '${location}'. Refresh PAPERCLIP_SESSION_TOKEN.`);
   }
 
   if (!response.ok()) {
@@ -31,8 +30,7 @@ async function readJsonOrSkip(
   }
 
   if (!/application\/json/i.test(contentType)) {
-    testInfo.skip(
-      true,
+    throw new Error(
       `${contextMessage}: expected JSON but received '${contentType || "unknown"}'. First bytes: ${bodyText.slice(0, 120)}`,
     );
   }
@@ -40,17 +38,10 @@ async function readJsonOrSkip(
   return JSON.parse(bodyText);
 }
 
-test.beforeEach(async ({ context, baseURL }, testInfo) => {
+test.beforeEach(async ({ context, page, baseURL }) => {
   const token = requireEnv("PAPERCLIP_SESSION_TOKEN");
-  if (!token) {
-    testInfo.skip(true, "Set PAPERCLIP_SESSION_TOKEN to run Playwright tests");
-    return;
-  }
-
-  if (!baseURL) {
-    testInfo.skip(true, "Missing baseURL");
-    return;
-  }
+  expect(token, "Set PAPERCLIP_SESSION_TOKEN to run Playwright tests").toBeTruthy();
+  expect(baseURL, "Missing PAPERCLIP_BASE_URL").toBeTruthy();
 
   const base = new URL(baseURL);
   await context.addCookies([
@@ -64,11 +55,19 @@ test.beforeEach(async ({ context, baseURL }, testInfo) => {
       sameSite: "Lax",
     },
   ]);
+
+  // Assert the configured base URL is reachable and loaded in the browser context.
+  await page.goto(baseURL, { waitUntil: "domcontentloaded" });
+  expect(page.url(), "PAPERCLIP_BASE_URL was not opened in browser").toContain(base.origin);
+
+  // Assert login worked by requiring authenticated JSON access to adapters endpoint.
+  const loginProbe = await page.request.get("/api/adapters");
+  await readJsonOrSkip(loginProbe, "login probe /api/adapters");
 });
 
-test("ironclaw adapter schema endpoint returns required fields", async ({ page, baseURL }, testInfo) => {
+test("ironclaw adapter schema endpoint returns required fields", async ({ page, baseURL }) => {
   const response = await page.request.get(`${baseURL}/api/adapters/ironclaw_http/config-schema`);
-  const body = (await readJsonOrSkip(response, testInfo, "config-schema request")) as {
+  const body = (await readJsonOrSkip(response, "config-schema request")) as {
     fields?: Array<{ key?: string }>;
   };
 
@@ -78,14 +77,14 @@ test("ironclaw adapter schema endpoint returns required fields", async ({ page, 
   expect(keys.has("timeout")).toBeTruthy();
 });
 
-test("agent configuration page shows ironclaw config fields", async ({ page }, testInfo) => {
+test("agent configuration page shows ironclaw config fields", async ({ page }) => {
   const adapterSettingsPath = process.env.PAPERCLIP_ADAPTER_SETTINGS_PATH || "/AHOA/company/settings/instance/adapters";
   const path = process.env.PAPERCLIP_AGENT_CONFIG_PATH || "/AHOA/agents/ceo/configuration";
   const expectedVersion = requireEnv("PAPERCLIP_ADAPTER_EXPECTED_VERSION");
 
   // Step 1: verify adapter registration (and expected version when provided).
   const adaptersResponse = await page.request.get("/api/adapters");
-  const adapters = (await readJsonOrSkip(adaptersResponse, testInfo, "adapters registry request")) as Array<{
+  const adapters = (await readJsonOrSkip(adaptersResponse, "adapters registry request")) as Array<{
     type?: string;
     version?: string;
   }>;

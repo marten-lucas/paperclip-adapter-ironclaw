@@ -1,6 +1,6 @@
 {
     "name": "@paperclipai/adapter-ironclaw-http",
-    "version": "0.1.5",
+    "version": "0.1.6",
     "license": "MIT",
     "description": "Paperclip adapter for Ironclaw AI agent system via HTTP REST API",
     "homepage": "https://github.com/marten-lucas/paperclip-adapter-ironclaw",
