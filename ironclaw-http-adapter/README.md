@@ -109,6 +109,12 @@ Required env vars:
 - `PAPERCLIP_SESSION_TOKEN` (authenticated Paperclip session cookie value)
 - `PAPERCLIP_AGENT_CONFIG_PATH` (optional, defaults to `/AHOA/agents/ceo/configuration`)
 
+For full end-to-end (including real Ironclaw model discovery):
+- `IRONCLAW_E2E_URL` (recommended: CT300 shim `http://10.12.12.106:3000`)
+- `IRONCLAW_E2E_TOKEN` (Bearer token accepted by Ironclaw)
+
+If `IRONCLAW_E2E_URL` is not set, the e2e spec falls back to the shim URL. The run fails if no models are discoverable.
+
 Example (inside ct202):
 
 ```bash
@@ -117,6 +123,8 @@ npm ci
 npm run e2e:install
 PAPERCLIP_BASE_URL=http://127.0.0.1:3100 \
 PAPERCLIP_SESSION_TOKEN='REDACTED' \
+IRONCLAW_E2E_URL=http://10.12.12.106:3000 \
+IRONCLAW_E2E_TOKEN='REDACTED' \
 npm run test:e2e
 ```
 

@@ -1,7 +1,7 @@
 # Project Status Summary
 
 **Date**: June 17, 2026  
-**Status**: ✅ **Phase 3 Complete - Ready for Phase 4 Development**  
+**Status**: ✅ **Phase 3 Complete - Ready for Phase 4 Development**
 **Timeline**: Phases 1-3 completed in 1 day; Phase 4-6 estimated 2-3 weeks
 
 ---
@@ -44,6 +44,20 @@
 ---
 
 ## Key Findings
+
+### Architecture Decision Update
+**Chosen path**: thin custom shim on CT300
+
+Why this path:
+- Keeps the Paperclip change surface out of the critical path
+- Preserves direct control over model routing and endpoint compatibility
+- Avoids turning this into a Paperclip core contribution
+- Is easier to maintain than a LiteLLM-based gateway for this single integration
+
+Current implementation focus:
+- Keep Ironclaw integration behind the CT300 compatibility layer
+- Preserve model selection at the adapter/proxy boundary
+- Avoid frontend/core changes unless Paperclip later exposes a clean extension point
 
 ### Architecture Decision
 **Not a direct OpenClaw Gateway adaptation**

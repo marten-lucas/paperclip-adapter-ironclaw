@@ -7,6 +7,37 @@ import { asString } from "@paperclipai/adapter-utils/server-utils";
 import { listModels } from "./client.js";
 import { refreshAdapterModels } from "./models-cache.js";
 
+function resolveEnvBindingString(
+  envConfig: Record<string, unknown>,
+  key: string,
+): string {
+  const raw = envConfig[key];
+  if (typeof raw === "string") return raw.trim();
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) return "";
+  const rec = raw as Record<string, unknown>;
+  if (rec.type === "plain" && typeof rec.value === "string") {
+    return rec.value.trim();
+  }
+  return "";
+}
+
+function asDirectConfigString(value: unknown): string {
+  if (typeof value !== "string") return "";
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  // CEO config can contain serialized secret refs for unresolved fields; those
+  // are not direct usable values and should fall back to env/process variables.
+  if (trimmed.startsWith("{")) {
+    try {
+      const parsed = JSON.parse(trimmed) as Record<string, unknown>;
+      if (parsed.type === "secret_ref") return "";
+    } catch {
+      // Keep non-JSON-like strings as-is.
+    }
+  }
+  return trimmed;
+}
+
 export async function testEnvironment(context: AdapterEnvironmentTestContext): Promise<AdapterEnvironmentTestResult> {
   const checks: Array<{
     code: string;
@@ -16,8 +47,25 @@ export async function testEnvironment(context: AdapterEnvironmentTestContext): P
     hint?: string | null;
   }> = [];
 
-  const url = asString(context.config?.url, "");
-  const authToken = asString(context.config?.authToken, "");
+  const envConfig =
+    typeof context.config?.env === "object" && context.config?.env !== null && !Array.isArray(context.config?.env)
+      ? (context.config.env as Record<string, unknown>)
+      : {};
+
+  const url = asString(
+    asDirectConfigString(context.config?.url),
+    resolveEnvBindingString(envConfig, "IRONCLAW_BASE_URL") ||
+      process.env.IRONCLAW_BASE_URL ||
+      process.env.IRONCLAW_URL ||
+      "",
+  );
+  const authToken = asString(
+    asDirectConfigString(context.config?.authToken),
+    resolveEnvBindingString(envConfig, "IRONCLAW_API_KEY") ||
+      process.env.IRONCLAW_API_KEY ||
+      process.env.IRONCLAW_TOKEN ||
+      "",
+  );
 
   // Check 1: URL is configured
   if (!url) {

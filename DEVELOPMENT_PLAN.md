@@ -175,7 +175,20 @@ EventFrame:    {type: "event", event: string, payload?, seq?}
 
 ## Phase 4: Core Development
 
+### Current Direction
+The preferred implementation path is the thin custom shim on CT300, not a Paperclip core or frontend contribution.
+
+That means Phase 4 should prioritize:
+- maintaining the shim as the compatibility boundary
+- keeping model selection explicit in the proxy/adapter contract
+- avoiding a dependency on external Paperclip UI changes
+
 ### Architecture Decision: HTTP Responses API (Not Gateway Protocol)
+
+Implementation note:
+- Use the CT300 shim as the maintainable compatibility layer for Ironclaw-specific quirks and routing.
+- Keep the Paperclip-facing adapter surface stable and minimal.
+- Do not introduce a Paperclip frontend patch unless the shim can no longer preserve model choice.
 
 **Critical Finding from Phase 2**: 
 Ironclaw and OpenClaw have fundamentally different architectures. Cannot adapt the gateway protocol. Instead, build an HTTP-based adapter using Ironclaw's Responses API.

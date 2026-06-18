@@ -179,6 +179,7 @@ Run test via the Paperclip UI or API before deploying to production.
 - Verify authToken has permissions to query models
 - Check Ironclaw instance has models configured
 - Review Ironclaw logs for errors
+- Prefer the CT300 endpoint shim URL when endpoint compatibility differs: \`http://10.12.12.106:3000\`
 
 ## Session Management
 
