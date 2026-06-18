@@ -30,8 +30,8 @@ The Ironclaw shim is intentionally separate from the Ollama filter.
 
 - App directory: `/opt/ironclaw-endpoint-shim`
 - Local service port: `127.0.0.1:18081`
-- Traefik entrypoint: `:13000`
-- External URL: `http://10.12.12.106:13000`
+- Traefik entrypoint: `:3000`
+- External URL: `http://10.12.12.106:3000`
 
 Behavior:
 
@@ -59,7 +59,7 @@ All other paths are proxied through unchanged.
 1. Copy the app into `/opt/ironclaw-endpoint-shim`
 2. Create a Python venv and install `fastapi`, `uvicorn`, and `httpx`
 3. Install the systemd unit as `ironclaw-endpoint-shim.service`
-4. Add Traefik entrypoint `ironclawcompat: ':13000'`
+4. Add Traefik entrypoint `ironclawcompat: ':3000'`
 5. Add the Traefik dynamic config file under `/etc/traefik/conf.d/`
 6. Restart `ironclaw-endpoint-shim.service`
 7. Restart `traefik.service`
@@ -71,7 +71,7 @@ Point the adapter `url` to the shim URL when you want compatibility behavior wit
 Example:
 
 ```text
-http://10.12.12.106:13000
+http://10.12.12.106:3000
 ```
 
 ## Limitations
