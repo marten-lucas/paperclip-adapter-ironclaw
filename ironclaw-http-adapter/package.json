@@ -1,6 +1,6 @@
 {
     "name": "@paperclipai/adapter-ironclaw-http",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "license": "MIT",
     "description": "Paperclip adapter for Ironclaw AI agent system via HTTP REST API",
     "homepage": "https://github.com/marten-lucas/paperclip-adapter-ironclaw",
@@ -13,10 +13,21 @@
         "directory": "ironclaw-http-adapter"
     },
     "type": "module",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
     "exports": {
-        ".": "./src/index.ts",
-        "./server": "./src/server/index.ts",
-        "./ui": "./src/ui/index.ts"
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js"
+        },
+        "./server": {
+            "types": "./dist/server/index.d.ts",
+            "import": "./dist/server/index.js"
+        },
+        "./ui": {
+            "types": "./dist/ui/index.d.ts",
+            "import": "./dist/ui/index.js"
+        }
     },
     "publishConfig": {
         "access": "public",
@@ -44,7 +55,7 @@
         "build": "tsc",
         "clean": "rm -rf dist",
         "typecheck": "tsc --noEmit",
-        "test": "node --test --loader ts-node/esm 'src/**/*.test.ts' 2>&1 | head -100"
+        "test": "npm run build && node --test --loader ts-node/esm 'src/**/*.test.ts'"
     },
     "dependencies": {
         "@paperclipai/adapter-utils": "^0.3.1"

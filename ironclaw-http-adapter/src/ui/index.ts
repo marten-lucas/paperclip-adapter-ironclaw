@@ -1,2 +1,2 @@
-export { buildIronclawConfig } from "./build-config.js";
+export { buildIronclawConfig, buildIronclawHttpConfig } from "./build-config.js";
 

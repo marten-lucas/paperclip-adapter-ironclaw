@@ -81,4 +81,7 @@ export function buildIronclawConfig(v: CreateConfigValuesCompat): Record<string,
   return ac;
 }
 
+// Compatibility alias for loaders that derive function names from adapter type (ironclaw_http).
+export const buildIronclawHttpConfig = buildIronclawConfig;
+
 

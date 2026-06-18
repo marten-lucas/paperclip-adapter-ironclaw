@@ -1,4 +1,4 @@
-import { getConfigSchema } from "./server/config-schema";
+import { getConfigSchema } from "./server/config-schema.js";
 
 /**
  * Ironclaw HTTP Adapter for Paperclip
